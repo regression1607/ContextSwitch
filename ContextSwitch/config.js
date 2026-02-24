@@ -1,3 +1,3 @@
 const CONFIG = {
-  API_URL: 'https://context-switch-backend.vercel.app/api'
+  API_URL: 'https://api.context-switch.dev/api'
 };
