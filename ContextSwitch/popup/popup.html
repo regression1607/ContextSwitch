@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ContextSwitch</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="container">
+    <!-- Auth View (Login/Signup) -->
+    <div id="authView" class="auth-view">
+      <div class="auth-header">
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="#a78bfa" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M2 17L12 22L22 17" stroke="#a78bfa" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M2 12L12 17L22 12" stroke="#a78bfa" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <h1>ContextSwitch</h1>
+        <p class="auth-subtitle">Save & transfer AI conversation context</p>
+      </div>
+      
+      <div class="auth-tabs">
+        <button class="auth-tab active" data-tab="login">Login</button>
+        <button class="auth-tab" data-tab="signup">Sign Up</button>
+      </div>
+      
+      <!-- Login Form -->
+      <form id="loginForm" class="auth-form">
+        <div class="form-group">
+          <label for="loginEmail">Email</label>
+          <input type="email" id="loginEmail" placeholder="you@example.com" required>
+        </div>
+        <div class="form-group">
+          <label for="loginPassword">Password</label>
+          <input type="password" id="loginPassword" placeholder="••••••••" required>
+        </div>
+        <button type="submit" class="btn btn-primary btn-full" id="loginBtn">Login</button>
+        <p class="auth-error" id="loginError"></p>
+      </form>
+      
+      <!-- Signup Form -->
+      <form id="signupForm" class="auth-form" style="display: none;">
+        <div class="form-group">
+          <label for="signupName">Name</label>
+          <input type="text" id="signupName" placeholder="Your name" required>
+        </div>
+        <div class="form-group">
+          <label for="signupEmail">Email</label>
+          <input type="email" id="signupEmail" placeholder="you@example.com" required>
+        </div>
+        <div class="form-group">
+          <label for="signupPassword">Password</label>
+          <input type="password" id="signupPassword" placeholder="Min 8 characters" required minlength="8">
+        </div>
+        <button type="submit" class="btn btn-primary btn-full" id="signupBtn">Create Account</button>
+        <p class="auth-error" id="signupError"></p>
+      </form>
+    </div>
+
+    <!-- Main App View (after login) -->
+    <div id="appView" style="display: none;">
+      <header class="header">
+        <div class="logo">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M2 17L12 22L22 17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M2 12L12 17L22 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <h1>ContextSwitch</h1>
+        </div>
+        <div class="header-right">
+          <span class="platform-badge" id="platformBadge">Detecting...</span>
+          <button class="btn-icon" id="profileBtn" title="Profile">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M20 21V19C20 17.9391 19.5786 16.9217 18.8284 16.1716C18.0783 15.4214 17.0609 15 16 15H8C6.93913 15 5.92172 15.4214 5.17157 16.1716C4.42143 16.9217 4 17.9391 4 19V21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <circle cx="12" cy="7" r="4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+          <button class="btn-icon" id="logoutBtn" title="Logout">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M9 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V5C3 4.46957 3.21071 3.96086 3.58579 3.58579C3.96086 3.21071 4.46957 3 5 3H9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M16 17L21 12L16 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M21 12H9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+        </div>
+      </header>
+
+      <!-- User Stats Bar -->
+      <div class="user-stats-bar" id="userStatsBar">
+        <div class="user-info">
+          <span class="user-name" id="userName">User</span>
+          <span class="user-plan" id="userPlan">Free</span>
+        </div>
+        <div class="stats-mini">
+          <span title="Total Compressions"><strong id="statCompressions">0</strong> compressions</span>
+          <span class="stats-divider">•</span>
+          <span title="Tokens Saved"><strong id="statTokens">0</strong> tokens saved</span>
+        </div>
+      </div>
+
+      <main class="main">
+      <div class="actions">
+        <button class="btn btn-primary" id="saveBtn">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M19 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V5C3 4.46957 3.21071 3.96086 3.58579 3.58579C3.96086 3.21071 4.46957 3 5 3H16L21 8V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M17 21V13H7V21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M7 3V8H15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          Save Full Context
+        </button>
+        <button class="btn btn-secondary" id="compressBtn" title="Ask AI to compress conversation first">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M12 3V21M12 3L6 9M12 3L18 9M12 21L6 15M12 21L18 15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          Compress First
+        </button>
+      </div>
+      
+      <div class="info-box" id="infoBox" style="display: none;">
+        <p id="infoText"></p>
+        <button class="btn btn-small" id="dismissInfo">Got it</button>
+      </div>
+
+      <div class="section">
+        <h2 class="section-title">Saved Projects</h2>
+        <div class="project-list" id="projectList">
+          <div class="empty-state" id="emptyState">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M22 19C22 19.5304 21.7893 20.0391 21.4142 20.4142C21.0391 20.7893 20.5304 21 20 21H4C3.46957 21 2.96086 20.7893 2.58579 20.4142C2.21071 20.0391 2 19.5304 2 19V5C2 4.46957 2.21071 3.96086 2.58579 3.58579C2.96086 3.21071 3.46957 3 4 3H9L11 6H20C20.5304 6 21.0391 6.21071 21.4142 6.58579C21.7893 6.96086 22 7.46957 22 8V19Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <p>No saved projects yet</p>
+            <span>Save your first conversation context to get started</span>
+          </div>
+        </div>
+      </div>
+    </main>
+    </div><!-- End appView -->
+
+    <!-- Save Modal -->
+    <div class="modal" id="saveModal">
+      <div class="modal-content">
+        <h3>Save Context</h3>
+        <p>Enter a name for this project:</p>
+        <input type="text" id="projectNameInput" placeholder="e.g., My React App" autocomplete="off">
+        <div class="modal-actions">
+          <button class="btn btn-secondary" id="cancelSaveBtn">Cancel</button>
+          <button class="btn btn-primary" id="confirmSaveBtn">Save</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Load Modal -->
+    <div class="modal" id="loadModal">
+      <div class="modal-content">
+        <h3>Load Context</h3>
+        <p id="loadModalText">Choose how to load the context:</p>
+        <div class="load-options">
+          <button class="btn btn-primary load-option" id="loadFullBtn">
+            <span class="option-title">Load Full Context</span>
+            <span class="option-desc">Paste entire conversation history</span>
+          </button>
+          <button class="btn btn-secondary load-option" id="loadCompressedBtn">
+            <span class="option-title">Load Compressed</span>
+            <span class="option-desc">AI-optimized compact format</span>
+          </button>
+        </div>
+        <div class="modal-actions">
+          <button class="btn btn-secondary" id="cancelLoadBtn">Cancel</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Compress Modal -->
+    <div class="modal" id="compressModal">
+      <div class="modal-content modal-large">
+        <h3>Compress Context</h3>
+        <p>Select a project to compress using AI:</p>
+        <div class="compress-project-list" id="compressProjectList">
+          <!-- Projects will be populated here -->
+        </div>
+        <div class="modal-actions">
+          <button class="btn btn-secondary" id="cancelCompressBtn">Cancel</button>
+          <button class="btn btn-primary" id="confirmCompressBtn" disabled>Compress Selected</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Delete Modal -->
+    <div class="modal" id="deleteModal">
+      <div class="modal-content">
+        <h3>Delete Project</h3>
+        <p id="deleteModalText">Are you sure you want to delete this project?</p>
+        <div class="modal-actions">
+          <button class="btn btn-secondary" id="cancelDeleteBtn">Cancel</button>
+          <button class="btn btn-danger" id="confirmDeleteBtn">Delete</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Profile Modal -->
+    <div class="modal" id="profileModal">
+      <div class="modal-content modal-large">
+        <h3>Your Profile</h3>
+        <div class="profile-section">
+          <div class="profile-header">
+            <div class="profile-avatar" id="profileAvatar">U</div>
+            <div class="profile-info">
+              <h4 id="profileName">User</h4>
+              <p id="profileEmail">user@example.com</p>
+            </div>
+          </div>
+          
+          <div class="profile-plan">
+            <span class="plan-label">Current Plan</span>
+            <span class="plan-badge" id="profilePlanBadge">Free</span>
+          </div>
+
+          <div class="profile-stats">
+            <h4>Usage Statistics</h4>
+            <div class="stats-grid">
+              <div class="stat-item">
+                <span class="stat-value" id="profileTotalCompressions">0</span>
+                <span class="stat-label">Total Compressions</span>
+              </div>
+              <div class="stat-item">
+                <span class="stat-value" id="profileMonthlyCompressions">0</span>
+                <span class="stat-label">This Month</span>
+              </div>
+              <div class="stat-item">
+                <span class="stat-value" id="profileTokensSaved">0</span>
+                <span class="stat-label">Tokens Saved</span>
+              </div>
+              <div class="stat-item">
+                <span class="stat-value" id="profileContextsSaved">0</span>
+                <span class="stat-label">Contexts Saved</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="profile-limits">
+            <h4>Plan Limits</h4>
+            <div class="limit-item">
+              <span>Monthly Compressions</span>
+              <span><span id="profileUsedCompressions">0</span> / <span id="profileMaxCompressions">50</span></span>
+            </div>
+          </div>
+        </div>
+        <div class="modal-actions">
+          <button class="btn btn-secondary" id="closeProfileBtn">Close</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div class="toast" id="toast">
+      <span id="toastMessage"></span>
+    </div>
+  </div>
+
+  <script src="../config.js"></script>
+  <script src="popup.js"></script>
+</body>
+</html>

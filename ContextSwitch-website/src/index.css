@@ -1,0 +1,132 @@
+@import "tailwindcss";
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+@theme {
+  --color-lime-50: #f8ffe6;
+  --color-lime-100: #efffbf;
+  --color-lime-200: #deff8a;
+  --color-lime-300: #c8f542;
+  --color-lime-400: #b8e620;
+  --color-lime-500: #9ac710;
+  --color-dark: #0a0a0a;
+  --color-dark-50: #1a1a1a;
+  --color-dark-100: #141414;
+  --color-purple: #a78bfa;
+  --color-purple-light: #c4b5fd;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: 'Inter', system-ui, sans-serif;
+  background-color: #0a0a0a;
+  color: #f4f4f5;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+::selection {
+  background-color: #c8f542;
+  color: #0a0a0a;
+}
+
+.btn-primary {
+  padding: 0.75rem 1.5rem;
+  background-color: #c8f542;
+  color: #0a0a0a;
+  font-weight: 600;
+  border-radius: 9999px;
+  transition: all 0.3s ease-out;
+}
+
+.btn-primary:hover {
+  background-color: #b8e620;
+  box-shadow: 0 10px 15px -3px rgba(200, 245, 66, 0.2);
+}
+
+.btn-secondary {
+  padding: 0.75rem 1.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: white;
+  font-weight: 500;
+  border-radius: 9999px;
+  transition: all 0.3s;
+}
+
+.btn-secondary:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.btn-purple {
+  padding: 0.75rem 1.5rem;
+  background-color: #a78bfa;
+  color: white;
+  font-weight: 600;
+  border-radius: 9999px;
+  transition: all 0.3s;
+}
+
+.btn-purple:hover {
+  background-color: #c4b5fd;
+}
+
+.section-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: #c8f542;
+}
+
+.heading-xl {
+  font-size: 2.25rem;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+@media (min-width: 768px) {
+  .heading-xl {
+    font-size: 3rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .heading-xl {
+    font-size: 3.75rem;
+  }
+}
+
+.heading-lg {
+  font-size: 1.875rem;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+@media (min-width: 768px) {
+  .heading-lg {
+    font-size: 2.25rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .heading-lg {
+    font-size: 3rem;
+  }
+}
+
+.gradient-text {
+  background: linear-gradient(to right, #c8f542, #b8e620);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
