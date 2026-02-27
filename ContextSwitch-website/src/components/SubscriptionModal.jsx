@@ -1,54 +1,76 @@
 import { useState } from 'react';
 import { createPortal } from 'react-dom';
+import { loadStripe } from '@stripe/stripe-js';
 
-const API_URL = 'http://localhost:5001/api';
+const API_URL = import.meta.env.VITE_API_URL || 'https://api.context-switch.dev/api';
+const STRIPE_PUBLIC_KEY = import.meta.env.VITE_STRIPE_PUBLIC_KEY || 'pk_test_your_stripe_public_key';
+
+// Initialize Stripe
+const stripePromise = loadStripe(STRIPE_PUBLIC_KEY);
+
+// Plan pricing configuration
+const PLAN_CONFIG = {
+  Pro: {
+    monthly: { price: '$9.99', priceId: 'pro_monthly' },
+    yearly: { price: '$99.99', priceId: 'pro_yearly', savings: 'Save 17%' }
+  },
+  Enterprise: {
+    monthly: { price: '$29.99', priceId: 'enterprise_monthly' },
+    yearly: { price: '$299.99', priceId: 'enterprise_yearly', savings: 'Save 17%' }
+  }
+};
 
 const SubscriptionModal = ({ isOpen, onClose, plan }) => {
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    phone: '',
-    message: '',
-  });
+  const [billingCycle, setBillingCycle] = useState('monthly');
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState({ type: '', message: '' });
 
-  const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-  };
+  const handleCheckout = async () => {
+    const token = localStorage.getItem('contextswitch_token');
+    
+    if (!token) {
+      setStatus({ type: 'error', message: 'Please login first to subscribe' });
+      return;
+    }
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
     setLoading(true);
     setStatus({ type: '', message: '' });
 
     try {
-      const response = await fetch(`${API_URL}/contact/subscription`, {
+      const planConfig = PLAN_CONFIG[plan];
+      const priceConfig = planConfig[billingCycle];
+
+      const response = await fetch(`${API_URL}/stripe/create-checkout-session`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...formData, plan }),
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ 
+          priceId: priceConfig.priceId,
+          planType: plan.toLowerCase()
+        }),
       });
 
       const data = await response.json();
 
-      if (data.success) {
-        setStatus({ type: 'success', message: data.message });
-        setTimeout(() => {
-          onClose();
-          setFormData({ name: '', email: '', phone: '', message: '' });
-          setStatus({ type: '', message: '' });
-        }, 3000);
+      if (data.success && data.url) {
+        // Redirect to Stripe Checkout
+        window.location.href = data.url;
       } else {
-        setStatus({ type: 'error', message: data.message });
+        setStatus({ type: 'error', message: data.message || 'Failed to create checkout session' });
       }
     } catch (error) {
-      setStatus({ type: 'error', message: 'Failed to send request. Please try again.' });
+      setStatus({ type: 'error', message: 'Failed to process. Please try again.' });
     } finally {
       setLoading(false);
     }
   };
 
   if (!isOpen) return null;
+
+  const planConfig = PLAN_CONFIG[plan] || PLAN_CONFIG.Pro;
+  const currentPrice = planConfig[billingCycle];
 
   return createPortal(
     <div 
@@ -94,131 +116,165 @@ const SubscriptionModal = ({ isOpen, onClose, plan }) => {
             <span style={{ color: '#c8f542', fontWeight: 600 }}>{plan} Plan</span>
           </div>
           <h2 style={{ fontSize: '1.5rem', fontWeight: 700, color: 'white', marginBottom: '0.5rem' }}>
-            Get Started with {plan}
+            Upgrade to {plan}
           </h2>
           <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.875rem' }}>
-            Fill in your details and we'll contact you to complete your subscription
+            Choose your billing cycle and proceed to checkout
           </p>
         </div>
 
-        {/* Form */}
-        <form onSubmit={handleSubmit}>
-          <div style={{ marginBottom: '1rem' }}>
-            <input
-              type="text"
-              name="name"
-              value={formData.name}
-              onChange={handleChange}
-              required
-              placeholder="Your Name *"
-              style={{
-                width: '100%',
-                padding: '0.875rem 1rem',
-                background: 'rgba(255,255,255,0.05)',
-                border: '1px solid rgba(255,255,255,0.1)',
-                borderRadius: '0.5rem',
-                color: 'white',
-                fontSize: '1rem',
-                boxSizing: 'border-box',
-              }}
-            />
-          </div>
-          <div style={{ marginBottom: '1rem' }}>
-            <input
-              type="email"
-              name="email"
-              value={formData.email}
-              onChange={handleChange}
-              required
-              placeholder="Your Email *"
-              style={{
-                width: '100%',
-                padding: '0.875rem 1rem',
-                background: 'rgba(255,255,255,0.05)',
-                border: '1px solid rgba(255,255,255,0.1)',
-                borderRadius: '0.5rem',
-                color: 'white',
-                fontSize: '1rem',
-                boxSizing: 'border-box',
-              }}
-            />
-          </div>
-          <div style={{ marginBottom: '1rem' }}>
-            <input
-              type="tel"
-              name="phone"
-              value={formData.phone}
-              onChange={handleChange}
-              placeholder="Phone Number (for faster contact)"
-              style={{
-                width: '100%',
-                padding: '0.875rem 1rem',
-                background: 'rgba(255,255,255,0.05)',
-                border: '1px solid rgba(255,255,255,0.1)',
-                borderRadius: '0.5rem',
-                color: 'white',
-                fontSize: '1rem',
-                boxSizing: 'border-box',
-              }}
-            />
-          </div>
-          <div style={{ marginBottom: '1.5rem' }}>
-            <textarea
-              name="message"
-              value={formData.message}
-              onChange={handleChange}
-              placeholder="Any questions or requirements? (Optional)"
-              rows={3}
-              style={{
-                width: '100%',
-                padding: '0.875rem 1rem',
-                background: 'rgba(255,255,255,0.05)',
-                border: '1px solid rgba(255,255,255,0.1)',
-                borderRadius: '0.5rem',
-                color: 'white',
-                fontSize: '1rem',
-                resize: 'vertical',
-                boxSizing: 'border-box',
-              }}
-            />
-          </div>
-
-          {status.message && (
-            <div style={{
-              padding: '0.875rem',
-              background: status.type === 'success' ? 'rgba(52,211,153,0.1)' : 'rgba(239,68,68,0.1)',
-              border: `1px solid ${status.type === 'success' ? 'rgba(52,211,153,0.3)' : 'rgba(239,68,68,0.3)'}`,
-              borderRadius: '0.5rem',
-              color: status.type === 'success' ? '#34d399' : '#ef4444',
-              marginBottom: '1rem',
-              fontSize: '0.875rem',
-            }}>
-              {status.message}
-            </div>
-          )}
-
+        {/* Billing Cycle Toggle */}
+        <div style={{ 
+          display: 'flex', 
+          background: 'rgba(255,255,255,0.05)',
+          borderRadius: '0.5rem',
+          padding: '0.25rem',
+          marginBottom: '1.5rem'
+        }}>
           <button
-            type="submit"
-            disabled={loading}
+            onClick={() => setBillingCycle('monthly')}
             style={{
-              width: '100%',
-              padding: '1rem',
-              background: '#c8f542',
-              color: '#0a0a0a',
-              fontWeight: 600,
-              borderRadius: '0.5rem',
+              flex: 1,
+              padding: '0.75rem',
+              borderRadius: '0.375rem',
               border: 'none',
-              cursor: loading ? 'not-allowed' : 'pointer',
-              opacity: loading ? 0.7 : 1,
-              fontSize: '1rem',
+              background: billingCycle === 'monthly' ? '#c8f542' : 'transparent',
+              color: billingCycle === 'monthly' ? '#0a0a0a' : 'rgba(255,255,255,0.6)',
+              fontWeight: 600,
+              cursor: 'pointer',
+              transition: 'all 0.2s'
             }}
           >
-            {loading ? 'Sending...' : 'Request Subscription'}
+            Monthly
           </button>
-        </form>
+          <button
+            onClick={() => setBillingCycle('yearly')}
+            style={{
+              flex: 1,
+              padding: '0.75rem',
+              borderRadius: '0.375rem',
+              border: 'none',
+              background: billingCycle === 'yearly' ? '#c8f542' : 'transparent',
+              color: billingCycle === 'yearly' ? '#0a0a0a' : 'rgba(255,255,255,0.6)',
+              fontWeight: 600,
+              cursor: 'pointer',
+              transition: 'all 0.2s'
+            }}
+          >
+            Yearly {planConfig.yearly.savings && <span style={{ fontSize: '0.75rem' }}>({planConfig.yearly.savings})</span>}
+          </button>
+        </div>
+
+        {/* Price Display */}
+        <div style={{ 
+          textAlign: 'center', 
+          padding: '1.5rem',
+          background: 'rgba(255,255,255,0.02)',
+          borderRadius: '0.75rem',
+          border: '1px solid rgba(255,255,255,0.05)',
+          marginBottom: '1.5rem'
+        }}>
+          <div style={{ fontSize: '3rem', fontWeight: 700, color: 'white' }}>
+            {currentPrice.price}
+          </div>
+          <div style={{ color: 'rgba(255,255,255,0.5)' }}>
+            per {billingCycle === 'monthly' ? 'month' : 'year'}
+          </div>
+        </div>
+
+        {/* Features */}
+        <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 1.5rem 0' }}>
+          {plan === 'Pro' ? (
+            <>
+              <li style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem', color: 'rgba(255,255,255,0.7)', fontSize: '0.875rem' }}>
+                <svg style={{ width: '1rem', height: '1rem', color: '#34d399' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                500 compressions/month
+              </li>
+              <li style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem', color: 'rgba(255,255,255,0.7)', fontSize: '0.875rem' }}>
+                <svg style={{ width: '1rem', height: '1rem', color: '#34d399' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                100 saved contexts
+              </li>
+              <li style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem', color: 'rgba(255,255,255,0.7)', fontSize: '0.875rem' }}>
+                <svg style={{ width: '1rem', height: '1rem', color: '#34d399' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                Priority support
+              </li>
+            </>
+          ) : (
+            <>
+              <li style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem', color: 'rgba(255,255,255,0.7)', fontSize: '0.875rem' }}>
+                <svg style={{ width: '1rem', height: '1rem', color: '#34d399' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                Unlimited compressions
+              </li>
+              <li style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem', color: 'rgba(255,255,255,0.7)', fontSize: '0.875rem' }}>
+                <svg style={{ width: '1rem', height: '1rem', color: '#34d399' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                Unlimited saved contexts
+              </li>
+              <li style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem', color: 'rgba(255,255,255,0.7)', fontSize: '0.875rem' }}>
+                <svg style={{ width: '1rem', height: '1rem', color: '#34d399' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                24/7 Priority support + API access
+              </li>
+            </>
+          )}
+        </ul>
+
+        {status.message && (
+          <div style={{
+            padding: '0.875rem',
+            background: status.type === 'success' ? 'rgba(52,211,153,0.1)' : 'rgba(239,68,68,0.1)',
+            border: `1px solid ${status.type === 'success' ? 'rgba(52,211,153,0.3)' : 'rgba(239,68,68,0.3)'}`,
+            borderRadius: '0.5rem',
+            color: status.type === 'success' ? '#34d399' : '#ef4444',
+            marginBottom: '1rem',
+            fontSize: '0.875rem',
+          }}>
+            {status.message}
+          </div>
+        )}
+
+        <button
+          onClick={handleCheckout}
+          disabled={loading}
+          style={{
+            width: '100%',
+            padding: '1rem',
+            background: '#c8f542',
+            color: '#0a0a0a',
+            fontWeight: 600,
+            borderRadius: '0.5rem',
+            border: 'none',
+            cursor: loading ? 'not-allowed' : 'pointer',
+            opacity: loading ? 0.7 : 1,
+            fontSize: '1rem',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '0.5rem'
+          }}
+        >
+          {loading ? 'Processing...' : (
+            <>
+              <svg style={{ width: '1.25rem', height: '1.25rem' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+              </svg>
+              Proceed to Checkout
+            </>
+          )}
+        </button>
 
         <p style={{ textAlign: 'center', marginTop: '1rem', color: 'rgba(255,255,255,0.4)', fontSize: '0.75rem' }}>
-          We'll contact you within 24 hours to complete the subscription process
+          Secure payment powered by Stripe. Cancel anytime.
         </p>
 
         {/* Close button */}
